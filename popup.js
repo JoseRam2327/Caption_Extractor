@@ -12,6 +12,39 @@ const statusDiv = document.getElementById('status');
 const captionCountEl = document.getElementById('captionCount');
 const captionDurationEl = document.getElementById('captionDuration');
 
+// Track whether auto-scroll is enabled
+let autoScrollEnabled = true;
+
+/**
+ * Check if user is at the bottom of the textarea
+ */
+function isAtBottom() {
+  // Allow 50px buffer for floating point precision
+  return captionText.scrollTop >= (captionText.scrollHeight - captionText.clientHeight - 50);
+}
+
+/**
+ * Detect user scroll and disable auto-scroll if they scroll up
+ */
+captionText.addEventListener('scroll', () => {
+  if (isAtBottom()) {
+    // User scrolled back to bottom - re-enable auto-scroll
+    autoScrollEnabled = true;
+  } else {
+    // User scrolled up - disable auto-scroll
+    autoScrollEnabled = false;
+  }
+});
+
+/**
+ * Auto-scroll to bottom only if user hasn't manually scrolled
+ */
+function autoScrollToBottom() {
+  if (autoScrollEnabled) {
+    captionText.scrollTop = captionText.scrollHeight;
+  }
+}
+
 /**
  * Show status message
  */
@@ -27,7 +60,7 @@ function showStatus(message, type = 'info') {
 }
 
 /**
- * Update caption count display and auto-scroll to bottom
+ * Update caption count display and smart auto-scroll
  */
 function updateStats() {
   const count = captionText.value.split('\n\n').filter(c => c.trim()).length;
@@ -39,8 +72,8 @@ function updateStats() {
   const seconds = estimatedDuration % 60;
   captionDurationEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-  // Auto-scroll to bottom to show newest captions
-  captionText.scrollTop = captionText.scrollHeight;
+  // Smart auto-scroll: only scroll if user hasn't scrolled up
+  autoScrollToBottom();
 }
 
 /**
