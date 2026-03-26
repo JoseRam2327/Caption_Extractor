@@ -64,11 +64,17 @@ function addCaptionIfNew(text) {
       capturedCaptions.push(text);
       previousCaption = text;
 
-      // Notify popup of update
-      chrome.runtime.sendMessage({
-        action: 'updateCaptionCount',
-        count: capturedCaptions.length
-      }).catch(() => { });
+      // Notify popup of update (silently fail if popup not open)
+      try {
+        chrome.runtime.sendMessage({
+          action: 'updateCaptionCount',
+          count: capturedCaptions.length
+        }).catch(() => {
+          // Silently ignore errors (popup may not be open)
+        });
+      } catch (e) {
+        // Extension context may have changed, ignore silently
+      }
 
       return true;
     }
