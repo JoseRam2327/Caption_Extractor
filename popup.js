@@ -27,7 +27,7 @@ function showStatus(message, type = 'info') {
 }
 
 /**
- * Update caption count display
+ * Update caption count display and auto-scroll to bottom
  */
 function updateStats() {
   const count = captionText.value.split('\n\n').filter(c => c.trim()).length;
@@ -38,6 +38,9 @@ function updateStats() {
   const minutes = Math.floor(estimatedDuration / 60);
   const seconds = estimatedDuration % 60;
   captionDurationEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+  // Auto-scroll to bottom to show newest captions
+  captionText.scrollTop = captionText.scrollHeight;
 }
 
 /**
