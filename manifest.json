@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "UT Austin Lecture Caption Extractor",
+  "version": "1.0",
+  "description": "Extract captions from UT Austin Tower lecture videos",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://tower.la.utexas.edu/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Extract Captions"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://tower.la.utexas.edu/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
