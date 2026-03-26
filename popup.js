@@ -18,7 +18,7 @@ const captionDurationEl = document.getElementById('captionDuration');
 function showStatus(message, type = 'info') {
   statusDiv.textContent = message;
   statusDiv.className = `status ${type}`;
-  
+
   if (type !== 'error') {
     setTimeout(() => {
       statusDiv.className = 'status';
@@ -32,7 +32,7 @@ function showStatus(message, type = 'info') {
 function updateStats() {
   const count = captionText.value.split('\n\n').filter(c => c.trim()).length;
   captionCountEl.textContent = count;
-  
+
   // Rough estimate: average caption is ~3 seconds
   const estimatedDuration = Math.round(count * 3);
   const minutes = Math.floor(estimatedDuration / 60);
@@ -41,15 +41,15 @@ function updateStats() {
 }
 
 /**
- * Extract captions from current page
+ * Extract captions from current page (manual refresh)
  */
 extractBtn.addEventListener('click', async () => {
   extractBtn.disabled = true;
-  showStatus('Extracting captions...', 'info');
-  
+  showStatus('Refreshing...', 'info');
+
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     chrome.tabs.sendMessage(
       tab.id,
       { action: 'getCaptions' },
@@ -63,11 +63,11 @@ extractBtn.addEventListener('click', async () => {
         if (response && response.captions) {
           captionText.value = response.captions;
           updateStats();
-          showStatus(`✅ Extracted ${response.count} captions!`, 'success');
+          showStatus(`✅ Refreshed! ${response.count} captions loaded.`, 'success');
         } else {
           showStatus('❌ No captions found. Make sure captions are enabled.', 'error');
         }
-        
+
         extractBtn.disabled = false;
       }
     );
@@ -105,7 +105,7 @@ downloadBtn.addEventListener('click', () => {
 
   const timestamp = new Date().toISOString().split('T')[0];
   const filename = `lecture_captions_${timestamp}.txt`;
-  
+
   const blob = new Blob([captionText.value], { type: 'text/plain; charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -113,7 +113,7 @@ downloadBtn.addEventListener('click', () => {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  
+
   showStatus(`✅ Downloaded as ${filename}`, 'success');
 });
 
@@ -131,7 +131,7 @@ clearBtn.addEventListener('click', async () => {
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
     chrome.tabs.sendMessage(
       tab.id,
       { action: 'clearCaptions' },
@@ -140,7 +140,7 @@ clearBtn.addEventListener('click', async () => {
           console.error(chrome.runtime.lastError);
           return;
         }
-        
+
         captionText.value = '';
         updateStats();
         showStatus('✅ Captions cleared', 'success');
@@ -162,13 +162,15 @@ captionText.addEventListener('input', updateStats);
 window.addEventListener('load', async () => {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    
+
+    // Get initial captions
     chrome.tabs.sendMessage(
       tab.id,
-      { action: 'getCaptionCount' },
+      { action: 'getCaptions' },
       (response) => {
-        if (response && response.count > 0) {
-          showStatus(`📊 ${response.count} captions ready. Click "Extract Captions" to load them.`, 'info');
+        if (response && response.captions) {
+          captionText.value = response.captions;
+          updateStats();
         }
       }
     );
@@ -177,4 +179,53 @@ window.addEventListener('load', async () => {
   }
 });
 
-console.log('Popup script loaded');
+/**
+ * Auto-refresh captions every 500ms while popup is open
+ * This way you see new captions appear in real-time without clicking anything
+ */
+let autoRefreshInterval;
+
+function startAutoRefresh() {
+  autoRefreshInterval = setInterval(async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+      chrome.tabs.sendMessage(
+        tab.id,
+        { action: 'getCaptions' },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            // Tab/page no longer available
+            stopAutoRefresh();
+            return;
+          }
+
+          if (response && response.captions) {
+            // Only update if captions have changed
+            if (captionText.value !== response.captions) {
+              captionText.value = response.captions;
+              updateStats();
+            }
+          }
+        }
+      );
+    } catch (error) {
+      stopAutoRefresh();
+    }
+  }, 500); // Update every 500ms
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) {
+    clearInterval(autoRefreshInterval);
+    autoRefreshInterval = null;
+  }
+}
+
+// Start auto-refresh when popup opens
+startAutoRefresh();
+
+// Stop auto-refresh when popup closes
+window.addEventListener('beforeunload', stopAutoRefresh);
+
+console.log('Popup script loaded - auto-refresh enabled');
