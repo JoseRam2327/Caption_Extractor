@@ -7,7 +7,6 @@ This extension solves a common problem for students: lecture videos on UT Austin
 A lightweight Chrome extension that automatically captures and extracts captions from UT Austin Tower lecture videos in real-time.
 
 ![Chrome Extension](https://img.shields.io/badge/Chrome%20Extension-Manifest%20V3-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-blue)
 ![Size](https://img.shields.io/badge/Size-%3C5KB-success)
 
 ## Features ✨
